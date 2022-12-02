@@ -1,0 +1,13 @@
+{
+    "name": "connect",
+    "config": {
+        "connector.class": "io.confluent.connect.jdbc.JdbcSourceConnector",
+        "tasks.max": "2",
+        "connection.url": "jdbc:postgresql://localhost/project3?user=postgres&password=My01pass",
+        "table.whitelist": "todos",
+        "mode": "timestamp+incrementing",
+        "incrementing.column.name": "id",
+        "timestamp.column.name": "updated_at",
+        "topic.prefix": "test1"
+    }
+}
