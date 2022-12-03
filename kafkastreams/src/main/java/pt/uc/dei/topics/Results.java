@@ -1,4 +1,4 @@
 package pt.uc.dei.topics;
 
-public class DBInfo {
+public class Results {
 }

@@ -1,14 +1,14 @@
-package pt.uc.dei;
+package pt.uc.dei.producers;
 
 import java.util.Properties;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 
-public class WeatherStation{
+public class SimpleProducer {
     public static void main(String[] args) throws Exception{ //Assign topicName to string variable
 
-        String topicName = args[0].toString();
+        String topicName = "standard-weather";
 
         // create instance for properties to access producer configs
         Properties props = new Properties(); //Assign localhost id

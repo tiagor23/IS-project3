@@ -1,4 +1,4 @@
-package pt.uc.dei;
+package pt.uc.dei.consumers;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -28,8 +28,7 @@ public class SimpleConsumer {
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "KafkaExampleConsumer");
         props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         props.put("value.deserializer", "org.apache.kafka.common.serialization.LongDeserializer");
-        Consumer<String, Long> consumer = new KafkaConsumer<>(props); 
-        consumer.subscribe(Collections.singletonList(topicName));
+        Consumer<String, Long> consumer = new KafkaConsumer<>(props); consumer.subscribe(Collections.singletonList(topicName));
         
         try {
             while (true) {

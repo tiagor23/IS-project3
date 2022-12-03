@@ -1,15 +1,15 @@
 package pt.uc.dei.topics;
 
-public class StandardWeather {
+public class WeatherAlert {
     private String location;
-    private float temperature;
+    private String type;
 
     public String getLocation() {
         return location;
     }
 
-    public float getTemperature() {
-        return temperature;
+    public String getType() {
+        return type;
     }
 
 }
