@@ -31,7 +31,8 @@ public class SimpleStreamsExercisesa {
         KTable<String, Long> outlines = lines.groupByKey().count();
         outlines.toStream().to(outtopicname);
 
-        KafkaStreams streams = new KafkaStreams(builder.build(), props); streams.start();
+        KafkaStreams streams = new KafkaStreams(builder.build(), props);
+        streams.start();
         System.out.println("Reading stream from topic " + topicName);
     } 
 }

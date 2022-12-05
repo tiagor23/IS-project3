@@ -1,4 +1,4 @@
-package pt.uc.dei.streams;
+package pt.uc.dei.serde;
 
 
 import java.nio.ByteBuffer;

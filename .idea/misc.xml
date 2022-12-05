@@ -4,6 +4,7 @@
     <option name="originalFiles">
       <list>
         <option value="$PROJECT_DIR$/kafkastreams/pom.xml" />
+        <option value="$PROJECT_DIR$/weathercompany/pom.xml" />
       </list>
     </option>
   </component>

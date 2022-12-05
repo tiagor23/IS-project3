@@ -3,7 +3,8 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/IS-project3.iml" filepath="$PROJECT_DIR$/.idea/IS-project3.iml" />
-      <module fileurl="file://$PROJECT_DIR$/kafkastreams/kafkastreams.iml" filepath="$PROJECT_DIR$/kafkastreams/kafkastreams.iml" />
+      <module fileurl="file://$PROJECT_DIR$/weathercompany/kafkastreams.iml" filepath="$PROJECT_DIR$/weathercompany/kafkastreams.iml" />
+      <module fileurl="file://$PROJECT_DIR$/kafkastreams/weathercompany.iml" filepath="$PROJECT_DIR$/kafkastreams/weathercompany.iml" />
     </modules>
   </component>
 </project>
