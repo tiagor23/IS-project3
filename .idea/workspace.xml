@@ -5,32 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="212458ef-ac26-4ec0-af69-afa8ff83f2f9" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/Maven__com_google_code_gson_gson_2_10.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/uiDesigner.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/weathercompany/src/main/java/pt/uc/dei/App.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/weathercompany/src/main/java/pt/uc/dei/consumers/SimpleConsumer.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/weathercompany/src/main/java/pt/uc/dei/consumers/WeatherCompanyConsumer.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/weathercompany/src/main/java/pt/uc/dei/streams/WeatherStationStreams.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/weathercompany/weathercompany.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/encodings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kafkastreams/kafkastreams.iml" beforeDir="false" afterPath="$PROJECT_DIR$/weathercompany/kafkastreams.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kafkastreams/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/weathercompany/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kafkastreams/src/main/java/pt/uc/dei/consumers/SimpleConsumer.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/kafkastreams/src/main/java/pt/uc/dei/producers/SimpleProducer.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/kafkastreams/src/main/java/pt/uc/dei/producers/WeatherStation.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/kafkastreams/src/main/java/pt/uc/dei/streams/IntArraySerde.java" beforeDir="false" afterPath="$PROJECT_DIR$/weathercompany/src/main/java/pt/uc/dei/serde/IntArraySerde.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kafkastreams/src/main/java/pt/uc/dei/streams/SimpleStreamsExercisesa.java" beforeDir="false" afterPath="$PROJECT_DIR$/weathercompany/src/main/java/pt/uc/dei/streams/SimpleStreamsExercisesa.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kafkastreams/src/main/java/pt/uc/dei/streams/SimpleStreamsExercisesb.java" beforeDir="false" afterPath="$PROJECT_DIR$/weathercompany/src/main/java/pt/uc/dei/streams/SimpleStreamsExercisesb.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kafkastreams/src/main/java/pt/uc/dei/streams/TheoreticalClass.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/kafkastreams/src/main/java/pt/uc/dei/topics/DBInfo.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/kafkastreams/src/main/java/pt/uc/dei/topics/Results.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/kafkastreams/src/main/java/pt/uc/dei/topics/StandardWeather.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/kafkastreams/src/main/java/pt/uc/dei/topics/WeatherAlert.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/kafkastreams/src/test/java/pt/uc/dei/AppTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/weathercompany/src/test/java/pt/uc/dei/AppTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/weathercompany/src/main/java/pt/uc/dei/consumers/WeatherCompanyConsumer.java" beforeDir="false" afterPath="$PROJECT_DIR$/weathercompany/src/main/java/pt/uc/dei/consumers/WeatherCompanyConsumer.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
