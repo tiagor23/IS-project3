@@ -11,7 +11,7 @@
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="kafkastreams" target="18" />
+      <module name="kafkastreams" target="17" />
       <module name="weathercompany" target="18" />
     </bytecodeTargetLevel>
   </component>

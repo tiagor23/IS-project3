@@ -1,11 +1,11 @@
 package pt.uc.dei;
 
-import pt.uc.dei.consumers.WeatherCompanyConsumer;
+import pt.uc.dei.consumers.WeatherStation;
 
 public class App {
     public static void main(String[] args) {
-        WeatherCompanyConsumer weatherCompanyConsumer = new WeatherCompanyConsumer();
-        weatherCompanyConsumer.startCompany();
+        WeatherStation weatherStation = new WeatherStation();
+        weatherStation.startCompany();
 
     }
 }
