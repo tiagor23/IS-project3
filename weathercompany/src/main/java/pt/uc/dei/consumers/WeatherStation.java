@@ -9,10 +9,9 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.kstream.Consumed;
-import org.apache.kafka.streams.kstream.Grouped;
-import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.Produced;
+import org.apache.kafka.streams.kstream.*;
+
+import java.text.DecimalFormat;
 import java.util.Properties;
 import java.util.Random;
 
@@ -24,8 +23,15 @@ public class WeatherStation {
 
     public void startCompany(){
         this.setProps();
-        assignDbInfo();
-        countTempPerStation();
+        //assignDbInfo();
+        KStream<String, String> standardWeatherStream = builder.stream("standard-weather");
+        KStream<String, String> weatherAlertsStream = builder.stream("weather-alerts");
+        //countTempPerStation(standardWeatherStream);
+        //countTempPerLocation(standardWeatherStream);
+        //minMaxPerStation(standardWeatherStream);
+        //minMaxPerLocation(standardWeatherStream);
+        //countAlertsPerStation(weatherAlertsStream);
+        countAlertsPerType(weatherAlertsStream);
         KafkaStreams kafkaStreams = new KafkaStreams(builder.build(), props);
         kafkaStreams.start();
     }
@@ -54,9 +60,11 @@ public class WeatherStation {
             Gson gson = new Gson();
             JsonObject newResult = gson.fromJson(result, JsonObject.class);
             JsonObject value = new JsonObject();
+            DecimalFormat decimalFormat = new DecimalFormat("0.0");
             value.addProperty("station", newResult.get("payload").getAsJsonObject().get("name").getAsString());
             value.addProperty("location", newResult.get("payload").getAsJsonObject().get("location").getAsString());
-            value.addProperty("temperature", String.valueOf(Math.random() * (50 - (-10) + 1) + (-10)));
+            value.addProperty("temperature", String.valueOf(decimalFormat.format(Math.random() *
+                    (50 - (-10) + 1) + (-10))));
             return new KeyValue<>(newResult.get("payload").getAsJsonObject().get("id").getAsString(),
                         gson.fromJson(value, JsonObject.class).toString());
         }
@@ -78,18 +86,122 @@ public class WeatherStation {
         }).to("weather-alerts");
 
     }
-    private void countTempPerStation() {
-        KStream<String, String> kStream = builder.stream("standard-weather");
-        kStream.map((key, value) -> {
+    private void countTempPerStation(KStream<String, String> standardWeatherStream) {
+        standardWeatherStream.map((key, value) -> {
             Gson gson = new Gson();
             JsonObject newResult = gson.fromJson(value, JsonObject.class);
             return new KeyValue<>(gson.fromJson(newResult.get("station"), JsonElement.class).toString(),
                     gson.fromJson(newResult.get("location"), JsonElement.class).toString());
-        }).groupByKey(Grouped.with(Serdes.String(), Serdes.String())).count().toStream().peek((k, v) -> {
-            System.out.println(v);
-        });
+        }).groupByKey(Grouped.with(Serdes.String(), Serdes.String())).count().toStream().map((k, v) -> {
+            Gson gson = new Gson();
+            JsonObject value = new JsonObject();
+            value.addProperty("station", k);
+            value.addProperty("count", v);
+            return new KeyValue<>(k, gson.fromJson(value, JsonObject.class).toString());
+        }).to("results-count-temp-station");
 
     }
 
+    private void countTempPerLocation(KStream<String, String> standardWeatherStream) {
+        standardWeatherStream.map((key, value) -> {
+            Gson gson = new Gson();
+            JsonObject newResult = gson.fromJson(value, JsonObject.class);
+            return new KeyValue<>(gson.fromJson(newResult.get("location"), JsonElement.class).toString(),
+                    gson.fromJson(newResult.get("station"), JsonElement.class).toString());
+        }).groupByKey(Grouped.with(Serdes.String(), Serdes.String())).count().toStream().map((k, v) -> {
+            Gson gson = new Gson();
+            JsonObject value = new JsonObject();
+            value.addProperty("location", k);
+            value.addProperty("count", v);
+            return new KeyValue<>(k, gson.fromJson(value, JsonObject.class).toString());
+        }).to("results-count-temp-location");
+    }
+
+    private void minMaxPerStation(KStream<String, String> standardWeatherStream){
+        standardWeatherStream.map((key, value) -> {
+            Gson gson = new Gson();
+            JsonObject newResult = gson.fromJson(value, JsonObject.class);
+            return new KeyValue<>(gson.fromJson(newResult.get("station"), JsonElement.class).toString(),
+                    gson.fromJson(newResult.get("temperature"), JsonElement.class).toString());
+        }).groupByKey()
+                .aggregate(() -> "1000", (k, v, aggregate) -> String.valueOf(Math.min(Double
+                        .parseDouble(v.substring(1, v.length() - 1).replace(",", ".")),
+                        Double.parseDouble(aggregate)))
+                ).toStream().peek((k, v) -> {
+                    System.out.println(k);
+                    System.out.println(v);
+                });
+        standardWeatherStream.map((key, value) -> {
+                    Gson gson = new Gson();
+                    JsonObject newResult = gson.fromJson(value, JsonObject.class);
+                    return new KeyValue<>(gson.fromJson(newResult.get("station"), JsonElement.class).toString(),
+                            gson.fromJson(newResult.get("temperature"), JsonElement.class).toString());
+                }).groupByKey()
+                .aggregate(() -> "-1000", (k, v, aggregate) -> String.valueOf(Math.max(Double
+                                .parseDouble(v.substring(1, v.length() - 1).replace(",", ".")),
+                        Double.parseDouble(aggregate)))
+                ).toStream().peek((k, v) -> {
+                    System.out.println(k);
+                    System.out.println(v);
+                });
+    }
+
+
+    private void minMaxPerLocation(KStream<String, String> standardWeatherStream){
+        standardWeatherStream.map((key, value) -> {
+                    Gson gson = new Gson();
+                    JsonObject newResult = gson.fromJson(value, JsonObject.class);
+                    return new KeyValue<>(gson.fromJson(newResult.get("location"), JsonElement.class).toString(),
+                            gson.fromJson(newResult.get("temperature"), JsonElement.class).toString());
+                }).groupByKey()
+                .aggregate(() -> "1000", (k, v, aggregate) -> String.valueOf(Math.min(Double
+                                .parseDouble(v.substring(1, v.length() - 1).replace(",", ".")),
+                        Double.parseDouble(aggregate)))
+                ).toStream().peek((k, v) -> {
+                    System.out.println(k);
+                    System.out.println(v);
+                });
+        standardWeatherStream.map((key, value) -> {
+                    Gson gson = new Gson();
+                    JsonObject newResult = gson.fromJson(value, JsonObject.class);
+                    return new KeyValue<>(gson.fromJson(newResult.get("location"), JsonElement.class).toString(),
+                            gson.fromJson(newResult.get("temperature"), JsonElement.class).toString());
+                }).groupByKey()
+                .aggregate(() -> "-1000", (k, v, aggregate) -> String.valueOf(Math.max(Double
+                                .parseDouble(v.substring(1, v.length() - 1).replace(",", ".")),
+                        Double.parseDouble(aggregate)))
+                ).toStream().peek((k, v) -> {
+                    System.out.println(k);
+                    System.out.println(v);
+                });
+    }
+    private void countAlertsPerStation(KStream<String, String> alertsStream) {
+        alertsStream.map((key, value) -> {
+            Gson gson = new Gson();
+            JsonObject newResult = gson.fromJson(value, JsonObject.class);
+            return new KeyValue<>(gson.fromJson(newResult.get("station"), JsonElement.class).toString(),
+                    gson.fromJson(newResult.get("location"), JsonElement.class).toString());
+        }).groupByKey(Grouped.with(Serdes.String(), Serdes.String())).count().toStream().map((k, v) -> {
+            Gson gson = new Gson();
+            JsonObject value = new JsonObject();
+            value.addProperty("station", k);
+            value.addProperty("count", v);
+            return new KeyValue<>(k, gson.fromJson(value, JsonObject.class).toString());
+        }).peek((k, v) -> System.out.println(k + "->" + v));
+    }
+    private void countAlertsPerType(KStream<String, String> alertsStream) {
+        alertsStream.map((key, value) -> {
+            Gson gson = new Gson();
+            JsonObject newResult = gson.fromJson(value, JsonObject.class);
+            return new KeyValue<>(gson.fromJson(newResult.get("type"), JsonElement.class).toString(),
+                    gson.fromJson(newResult.get("location"), JsonElement.class).toString());
+        }).groupByKey(Grouped.with(Serdes.String(), Serdes.String())).count().toStream().map((k, v) -> {
+            Gson gson = new Gson();
+            JsonObject value = new JsonObject();
+            value.addProperty("type", k);
+            value.addProperty("count", v);
+            return new KeyValue<>(k, gson.fromJson(value, JsonObject.class).toString());
+        }).peek((k, v) -> System.out.println(k + "->" + v));
+    }
 
 }
