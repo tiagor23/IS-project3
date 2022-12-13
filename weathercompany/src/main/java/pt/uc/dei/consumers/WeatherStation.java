@@ -33,7 +33,9 @@ public class WeatherStation {
         //minMaxPerLocation(standardWeatherStream);
         //countAlertsPerStation(weatherAlertsStream);
         //countAlertsPerType(weatherAlertsStream);
-        minTempRedAlerts(standardWeatherStream, weatherAlertsStream);
+        minTempAllStationsRedAlerts(standardWeatherStream, weatherAlertsStream);
+        //minTempRedAlerts(standardWeatherStream, weatherAlertsStream);
+        //averageTempStation(standardWeatherStream);
         KafkaStreams kafkaStreams = new KafkaStreams(builder.build(), props);
         kafkaStreams.start();
     }
@@ -206,8 +208,8 @@ public class WeatherStation {
             return new KeyValue<>(k, gson.fromJson(value, JsonObject.class).toString());
         }).peek((k, v) -> System.out.println(k + "->" + v));
     }
-
-    private void minTempRedAlerts(KStream<String, String> standardWeatherStream, KStream<String, String> alertsStream){
+    //requirement 7 and 9
+    private void minTempAllStationsRedAlerts(KStream<String, String> standardWeatherStream, KStream<String, String> alertsStream){
         ValueJoiner<String, String, String> valueJoiner = (value1, value2) -> {
             Gson gson = new Gson();
             JsonObject newValue1 = gson.fromJson(value1, JsonObject.class);
@@ -234,18 +236,65 @@ public class WeatherStation {
                             newResult.get("temperature").toString());
                 })
                 .groupByKey()
-                .reduce(new Reducer<String>() {
-                    @Override
-                    public String apply(String s, String v1) {
-                        return Double.parseDouble(v1.substring(1, v1.length() - 1).replace(",", "."))
-                                < Double.parseDouble(s.substring(1, s.length() - 1).replace(",", "."))
-                                ? v1 : s;
-                    }
-                }).toStream().peek((k, v) -> {
+                .reduce((s, v1) -> Double.parseDouble(v1.substring(1, v1.length() - 1).replace(",", "."))
+                        < Double.parseDouble(s.substring(1, s.length() - 1).replace(",", "."))
+                        ? v1 : s).toStream().peek((k, v) -> {
                     System.out.println(k);
                     System.out.println(v);
-                }
-                );
+                });
+    }
+
+    private void minTempPerStationRedAlerts(KStream<String, String> standardWeatherStream, KStream<String, String> alertsStream){
+        ValueJoiner<String, String, String> valueJoiner = (value1, value2) -> {
+            Gson gson = new Gson();
+            JsonObject newValue1 = gson.fromJson(value1, JsonObject.class);
+            JsonObject newValue2 = gson.fromJson(value2, JsonObject.class);
+            JsonObject finalValue = new JsonObject();
+            finalValue.add("station",
+                    newValue2.get("station"));
+            finalValue.add("location",
+                    newValue2.get("location"));
+            finalValue.add("temperature",
+                    newValue2.get("temperature"));
+            finalValue.add("type",
+                    newValue1.get("type"));
+            return finalValue.toString();
+        };
+        alertsStream.filter((k, v) ->
+                        new Gson().fromJson(v, JsonObject.class).get("type").getAsString().equals("red")
+                ).join(standardWeatherStream, valueJoiner,
+                        JoinWindows.ofTimeDifferenceAndGrace(Duration.ofSeconds(10), Duration.ofSeconds(0)))
+                .map((k, v) -> {
+                    Gson gson = new Gson();
+                    JsonObject newResult = gson.fromJson(v, JsonObject.class);
+                    return new KeyValue<>(newResult.get("station").toString(),
+                            newResult.get("temperature").toString());
+                })
+                .groupByKey()
+                .reduce((s, v1) -> Double.parseDouble(v1.substring(1, v1.length() - 1).replace(",", "."))
+                        < Double.parseDouble(s.substring(1, s.length() - 1).replace(",", "."))
+                        ? v1 : s).toStream().peek((k, v) -> {
+                    System.out.println(k);
+                    System.out.println(v);
+                });
+    }
+
+    private void averageTempStation(KStream<String, String> standardWeatherStream){
+       standardWeatherStream.map((k, v) -> {
+           Gson gson = new Gson();
+           JsonObject newResult = gson.fromJson(v, JsonObject.class);
+           return new KeyValue<>(newResult.get("station").getAsString(), newResult.get("temperature").getAsString());
+       }).groupByKey().aggregate(() -> "0,0,0", // first element is the total, second is the average
+               (k, v, aggregate) -> {
+                    String[] aggregation = aggregate.split(",");
+                    int count = Integer.parseInt(aggregation[2]) + 1;
+                    double total = Double.parseDouble(aggregation[0]) +
+                            Double.parseDouble(v.replace(",", "."));
+                    double average = total / count;
+                    return total + "," + average + "," + count;
+               }
+               ).toStream().peek((k, v) -> {System.out.println(k);
+           System.out.println(v.split(",")[1]);});
     }
 
 }
