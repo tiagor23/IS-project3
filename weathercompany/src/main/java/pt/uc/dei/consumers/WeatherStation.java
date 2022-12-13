@@ -12,6 +12,7 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.*;
 
 import java.text.DecimalFormat;
+import java.time.Duration;
 import java.util.Properties;
 import java.util.Random;
 
@@ -31,7 +32,8 @@ public class WeatherStation {
         //minMaxPerStation(standardWeatherStream);
         //minMaxPerLocation(standardWeatherStream);
         //countAlertsPerStation(weatherAlertsStream);
-        countAlertsPerType(weatherAlertsStream);
+        //countAlertsPerType(weatherAlertsStream);
+        minTempRedAlerts(standardWeatherStream, weatherAlertsStream);
         KafkaStreams kafkaStreams = new KafkaStreams(builder.build(), props);
         kafkaStreams.start();
     }
@@ -61,12 +63,12 @@ public class WeatherStation {
             JsonObject newResult = gson.fromJson(result, JsonObject.class);
             JsonObject value = new JsonObject();
             DecimalFormat decimalFormat = new DecimalFormat("0.0");
-            value.addProperty("station", newResult.get("payload").getAsJsonObject().get("name").getAsString());
-            value.addProperty("location", newResult.get("payload").getAsJsonObject().get("location").getAsString());
+            value.add("station", newResult.get("payload").getAsJsonObject().get("name"));
+            value.add("location", newResult.get("payload").getAsJsonObject().get("location"));
             value.addProperty("temperature", String.valueOf(decimalFormat.format(Math.random() *
                     (50 - (-10) + 1) + (-10))));
-            return new KeyValue<>(newResult.get("payload").getAsJsonObject().get("id").getAsString(),
-                        gson.fromJson(value, JsonObject.class).toString());
+            return new KeyValue<>(newResult.get("payload").getAsJsonObject().get("id").toString(),
+                        value.toString());
         }
         ).to("standard-weather", Produced.with(Serdes.String(), Serdes.String()));
 
@@ -78,11 +80,12 @@ public class WeatherStation {
             String[] types = {"green", "yellow", "red"};
             Random r = new Random();
             JsonObject value = new JsonObject();
-            value.addProperty("station", newResult.get("payload").getAsJsonObject().get("name").getAsString());
-            value.addProperty("location", newResult.get("payload").getAsJsonObject().get("location").getAsString());
+            value.add("station", newResult.get("payload").getAsJsonObject().get("name"));
+            value.add("location", newResult.get("payload").getAsJsonObject().get("location"));
             value.addProperty("type", types[r.nextInt(types.length)]);
-            return new KeyValue<>(newResult.get("payload").getAsJsonObject().get("id").getAsString(),
-                    gson.fromJson(value, JsonObject.class).toString());
+            System.out.println(value.get("type").toString());
+            return new KeyValue<>(newResult.get("payload").getAsJsonObject().get("id").toString(),
+                    value.toString());
         }).to("weather-alerts");
 
     }
@@ -202,6 +205,47 @@ public class WeatherStation {
             value.addProperty("count", v);
             return new KeyValue<>(k, gson.fromJson(value, JsonObject.class).toString());
         }).peek((k, v) -> System.out.println(k + "->" + v));
+    }
+
+    private void minTempRedAlerts(KStream<String, String> standardWeatherStream, KStream<String, String> alertsStream){
+        ValueJoiner<String, String, String> valueJoiner = (value1, value2) -> {
+            Gson gson = new Gson();
+            JsonObject newValue1 = gson.fromJson(value1, JsonObject.class);
+            JsonObject newValue2 = gson.fromJson(value2, JsonObject.class);
+            JsonObject finalValue = new JsonObject();
+            finalValue.add("station",
+                    newValue2.get("station"));
+            finalValue.add("location",
+                    newValue2.get("location"));
+            finalValue.add("temperature",
+                    newValue2.get("temperature"));
+            finalValue.add("type",
+                    newValue1.get("type"));
+            return finalValue.toString();
+        };
+        alertsStream.filter((k, v) ->
+            new Gson().fromJson(v, JsonObject.class).get("type").getAsString().equals("red")
+        ).join(standardWeatherStream, valueJoiner,
+            JoinWindows.ofTimeDifferenceAndGrace(Duration.ofSeconds(10), Duration.ofSeconds(0)))
+                .map((k, v) -> {
+                    Gson gson = new Gson();
+                    JsonObject newResult = gson.fromJson(v, JsonObject.class);
+                    return new KeyValue<>(newResult.get("station").toString(),
+                            newResult.get("temperature").toString());
+                })
+                .groupByKey()
+                .reduce(new Reducer<String>() {
+                    @Override
+                    public String apply(String s, String v1) {
+                        return Double.parseDouble(v1.substring(1, v1.length() - 1).replace(",", "."))
+                                < Double.parseDouble(s.substring(1, s.length() - 1).replace(",", "."))
+                                ? v1 : s;
+                    }
+                }).toStream().peek((k, v) -> {
+                    System.out.println(k);
+                    System.out.println(v);
+                }
+                );
     }
 
 }
