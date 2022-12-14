@@ -35,10 +35,11 @@ public class WeatherStation {
         //countAlertsPerStation(weatherAlertsStream);
         //countAlertsPerType(weatherAlertsStream);
         //minTempAllStationsRedAlerts(standardWeatherStream, weatherAlertsStream);
-        maxTempLocationRedLastHour(standardWeatherStream, weatherAlertsStream);
+        //maxTempLocationRedLastHour(standardWeatherStream, weatherAlertsStream);
+        minTempPerStationRedAlerts(standardWeatherStream, weatherAlertsStream);
         //minTempRedAlerts(standardWeatherStream, weatherAlertsStream);
         //averageTempStation(standardWeatherStream);
-        avgTempStationsRedLastHour(standardWeatherStream, weatherAlertsStream);
+        //avgTempStationsRedLastHour(standardWeatherStream, weatherAlertsStream);
         KafkaStreams kafkaStreams = new KafkaStreams(builder.build(), props);
         kafkaStreams.start();
     }
@@ -287,18 +288,9 @@ public class WeatherStation {
     //requirement 9
     private void minTempPerStationRedAlerts(KStream<String, String> standardWeatherStream, KStream<String, String> alertsStream){
         ValueJoiner<String, String, String> valueJoiner = (value1, value2) -> {
-            Gson gson = new Gson();
-            JsonObject newValue1 = gson.fromJson(value1, JsonObject.class);
-            JsonObject newValue2 = gson.fromJson(value2, JsonObject.class);
             JsonObject finalValue = new JsonObject();
-            finalValue.add("station",
-                    newValue2.get("station"));
-            finalValue.add("location",
-                    newValue2.get("location"));
-            finalValue.add("temperature",
-                    newValue2.get("temperature"));
-            finalValue.add("type",
-                    newValue1.get("type"));
+            finalValue.add("type", new Gson().fromJson(value1, JsonObject.class).get("type"));
+            finalValue.add("temperature", new Gson().fromJson(value2, JsonObject.class).get("temperature"));
             return finalValue.toString();
         };
         alertsStream.filter((k, v) ->
@@ -308,13 +300,15 @@ public class WeatherStation {
                 .map((k, v) -> {
                     Gson gson = new Gson();
                     JsonObject newResult = gson.fromJson(v, JsonObject.class);
-                    return new KeyValue<>(newResult.get("station").toString(),
+                    return new KeyValue<>(newResult.get("type").toString(),
                             newResult.get("temperature").toString());
                 })
                 .groupByKey()
-                .reduce((s, v1) -> Double.parseDouble(v1.substring(1, v1.length() - 1).replace(",", "."))
-                        < Double.parseDouble(s.substring(1, s.length() - 1).replace(",", "."))
-                        ? v1 : s).toStream().peek((k, v) -> {
+                .reduce((s, v1) ->
+                     Double.parseDouble(v1.substring(1, v1.length() - 1).replace(",", "."))
+                            < Double.parseDouble(s.substring(1, s.length() - 1).replace(",", "."))
+                            ? v1 : s
+                ).toStream().peek((k, v) -> {
                     System.out.println(k);
                     System.out.println(v);
                 });
@@ -338,6 +332,7 @@ public class WeatherStation {
            System.out.println(v.split(",")[1]);});
     }
 
+    // requirement 11
     private void avgTempStationsRedLastHour(KStream<String, String> standardWeatherStream, KStream<String, String> alerts){
         ValueJoiner<String, String, String> valueJoiner = (value1, value2) -> {
             Gson gson = new Gson();
