@@ -1,7 +1,6 @@
-package pt.uc.dei.consumers;
+package pt.uc.dei.streams;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import org.apache.kafka.common.Uuid;
 import org.apache.kafka.common.serialization.Serdes;
@@ -26,19 +25,19 @@ public class WeatherStation {
 
     public void startCompany(){
         this.setProps();
-        //assignDbInfo();
+        assignDbInfo();
         KStream<String, String> standardWeatherStream = builder.stream("standard-weather");
         KStream<String, String> weatherAlertsStream = builder.stream("weather-alerts");
-        //countTempPerStation(standardWeatherStream);
-        //countTempPerLocation(standardWeatherStream);
-        //minMaxPerStation(standardWeatherStream);
-        //minMaxPerLocation(standardWeatherStream);
-        //countAlertsPerStation(weatherAlertsStream);
-        //countAlertsPerType(weatherAlertsStream);
-        //minTempStationsRedAlerts(standardWeatherStream, weatherAlertsStream);
-        //maxTempLocationRedLastHour(standardWeatherStream, weatherAlertsStream);
-        //minTempPerStationRedAlerts(standardWeatherStream, weatherAlertsStream);
-        //averageTempStation(standardWeatherStream);
+        countTempPerStation(standardWeatherStream);
+        countTempPerLocation(standardWeatherStream);
+        minMaxPerStation(standardWeatherStream);
+        minMaxPerLocation(standardWeatherStream);
+        countAlertsPerStation(weatherAlertsStream);
+        countAlertsPerType(weatherAlertsStream);
+        minTempStationsRedAlerts(standardWeatherStream, weatherAlertsStream);
+        maxTempLocationRedLastHour(standardWeatherStream, weatherAlertsStream);
+        minTempPerStationRedAlerts(standardWeatherStream, weatherAlertsStream);
+        averageTempStation(standardWeatherStream);
         avgTempStationsRedLastHour(standardWeatherStream, weatherAlertsStream);
         KafkaStreams kafkaStreams = new KafkaStreams(builder.build(), props);
         kafkaStreams.start();
@@ -74,14 +73,14 @@ public class WeatherStation {
             return new KeyValue<>(newResult.get("payload").getAsJsonObject().get("id").toString(),
                         value.toString());
         }
-        ).to("standard-weather", Produced.with(Serdes.String(), Serdes.String()));
+        ).to("standard-weather");
 
         // stream to consume the dbInfo
         // produce to weather alerts
         lines.map((key, result) -> {
             Gson gson = new Gson();
             JsonObject newResult = gson.fromJson(result, JsonObject.class);
-            String[] types = {"green", "yellow", "red"};
+            String[] types = {"green", "red"};
             Random r = new Random();
             JsonObject value = new JsonObject();
             value.add("station", newResult.get("payload").getAsJsonObject().get("name"));
@@ -99,14 +98,13 @@ public class WeatherStation {
         standardWeatherStream.map((key, value) -> {
             Gson gson = new Gson();
             JsonObject newResult = gson.fromJson(value, JsonObject.class);
-            return new KeyValue<>(gson.fromJson(newResult.get("station"), JsonElement.class).toString(),
-                    gson.fromJson(newResult.get("location"), JsonElement.class).toString());
+            return new KeyValue<>(newResult.get("station").getAsString(),
+                    newResult.get("location").getAsString());
         }).groupByKey(Grouped.with(Serdes.String(), Serdes.String())).count().toStream().map((k, v) -> {
-            Gson gson = new Gson();
             JsonObject value = new JsonObject();
             value.addProperty("station", k);
             value.addProperty("count", v);
-            return new KeyValue<>(k, gson.fromJson(value, JsonObject.class).toString());
+            return new KeyValue<>(k, value.toString());
         }).to("results-requirement-1");
 
     }
@@ -116,14 +114,14 @@ public class WeatherStation {
         standardWeatherStream.map((key, value) -> {
             Gson gson = new Gson();
             JsonObject newResult = gson.fromJson(value, JsonObject.class);
-            return new KeyValue<>(gson.fromJson(newResult.get("location"), JsonElement.class).toString(),
-                    gson.fromJson(newResult.get("station"), JsonElement.class).toString());
+            return new KeyValue<>(newResult.get("location").getAsString(),
+                    newResult.get("station").getAsString());
         }).groupByKey(Grouped.with(Serdes.String(), Serdes.String())).count().toStream().map((k, v) -> {
             Gson gson = new Gson();
             JsonObject value = new JsonObject();
             value.addProperty("location", k);
             value.addProperty("count", v);
-            return new KeyValue<>(k, gson.fromJson(value, JsonObject.class).toString());
+            return new KeyValue<>(k, value.toString());
         }).to("results-requirement-2");
     }
 
@@ -142,7 +140,7 @@ public class WeatherStation {
                     JsonObject newResult = new JsonObject();
                     newResult.addProperty("station", k);
                     newResult.addProperty("minTemp", v);
-                    return new KeyValue<>(k, newResult);
+                    return new KeyValue<>(k, newResult.toString());
                 }).to("results-requirement-3");
         standardWeatherStream.map((key, value) -> {
                     Gson gson = new Gson();
@@ -157,7 +155,7 @@ public class WeatherStation {
                     JsonObject newResult = new JsonObject();
                     newResult.addProperty("station", k);
                     newResult.addProperty("maxTemp", v);
-                    return new KeyValue<>(k, newResult);
+                    return new KeyValue<>(k, newResult.toString());
                 }).to("results-requirement-3");
     }
 
@@ -175,8 +173,8 @@ public class WeatherStation {
                 ).toStream().map((k, v) -> {
                     JsonObject newResult = new JsonObject();
                     newResult.addProperty("location", k);
-                    newResult.addProperty("minTemperature", v);
-                    return new KeyValue<>(k, newResult);
+                    newResult.addProperty("minTemperature", String.valueOf(((Float.parseFloat(v)*9)/5)+32));
+                    return new KeyValue<>(k, newResult.toString());
                 }).to("results-requirement-4");
         standardWeatherStream.map((key, value) -> {
                     Gson gson = new Gson();
@@ -190,8 +188,8 @@ public class WeatherStation {
                 ).toStream().map((k, v) -> {
                     JsonObject newResult = new JsonObject();
                     newResult.addProperty("location", k);
-                    newResult.addProperty("maxTemperature", v);
-                    return new KeyValue<>(k, newResult);
+                    newResult.addProperty("maxTemperature", String.valueOf(((Float.parseFloat(v)*9)/5)+32));
+                    return new KeyValue<>(k, newResult.toString());
                 }).to("results-requirement-4");
     }
 
@@ -206,7 +204,7 @@ public class WeatherStation {
             JsonObject value = new JsonObject();
             value.addProperty("station", k);
             value.addProperty("count", v);
-            return new KeyValue<>(k, value);
+            return new KeyValue<>(k, value.toString());
         }).to("results-requirement-5");
     }
 
@@ -221,7 +219,7 @@ public class WeatherStation {
             JsonObject value = new JsonObject();
             value.addProperty("type", k);
             value.addProperty("count", v);
-            return new KeyValue<>(k, value);
+            return new KeyValue<>(k, value.toString());
         }).to("results-requirement-6");
     }
 
@@ -253,15 +251,15 @@ public class WeatherStation {
                             newResult.get("temperature").getAsString());
                 })
                 .groupByKey()
-                .reduce((s, v1) ->
-                        Double.parseDouble(v1.replace(",", "."))
-                        < Double.parseDouble(s.replace(",", "."))
-                        ? v1 : s)
+                .reduce((aggV, newV) ->
+                        Double.parseDouble(newV.replace(",", "."))
+                        < Double.parseDouble(aggV.replace(",", "."))
+                        ? newV : aggV)
                 .toStream().map((k, v) -> {
                     JsonObject newResult = new JsonObject();
                     newResult.addProperty("station", k);
                     newResult.addProperty("minTemperature", v);
-                    return new KeyValue<>(k, newResult);
+                    return new KeyValue<>(k, newResult.toString());
                 }).to("results-requirement-7");
 
     }
@@ -273,7 +271,6 @@ public class WeatherStation {
             JsonObject newValue1 = gson.fromJson(value1, JsonObject.class);
             JsonObject newValue2 = gson.fromJson(value2, JsonObject.class);
             JsonObject finalValue = new JsonObject();
-            System.out.println(newValue1);
             finalValue.add("station",
                     newValue2.get("station"));
             finalValue.add("location",
@@ -291,24 +288,24 @@ public class WeatherStation {
         }).join(standardWeatherStream, valueJoiner,
             JoinWindows.ofTimeDifferenceAndGrace(Duration.ofSeconds(10), Duration.ofSeconds(0)))
                 .map((k, v) -> {
-                    System.out.println(v);
                     Gson gson = new Gson();
                     JsonObject newResult = gson.fromJson(v, JsonObject.class);
                     return new KeyValue<>(newResult.get("location").getAsString(),
                             newResult.get("temperature").getAsString());
                 })
-                .groupByKey().reduce((s, v1) -> Double.parseDouble(v1.replace(",", "."))
-                        > Double.parseDouble(s.replace(",", "."))
-                        ? v1 : s).toStream().map((k, v) -> {
+                .groupByKey().reduce((aggV, newV) -> Double.parseDouble(newV.replace(",", "."))
+                        > Double.parseDouble(aggV.replace(",", "."))
+                        ? newV : aggV).toStream().map((k, v) -> {
                             JsonObject newResult = new JsonObject();
                             newResult.addProperty("location", k);
                             newResult.addProperty("maxTemp", v);
-                            return new KeyValue<>(k, newResult);
+                            return new KeyValue<>(k, newResult.toString());
                 }).to("results-requirement-8");
     }
 
     //requirement 9
-    private void minTempPerStationRedAlerts(KStream<String, String> standardWeatherStream, KStream<String, String> alertsStream){
+    private void minTempPerStationRedAlerts(KStream<String, String> standardWeatherStream, KStream<String,
+            String> alertsStream){
         ValueJoiner<String, String, String> valueJoiner = (value1, value2) -> {
             JsonObject finalValue = new JsonObject();
             finalValue.add("type", new Gson().fromJson(value1, JsonObject.class).get("type"));
@@ -326,14 +323,14 @@ public class WeatherStation {
                             newResult.get("temperature").getAsString());
                 })
                 .groupByKey()
-                .reduce((s, v1) ->
-                     Double.parseDouble(v1.replace(",", "."))
-                            < Double.parseDouble(s.replace(",", "."))
-                            ? v1 : s
+                .reduce((aggV, newV) ->
+                     Double.parseDouble(newV.replace(",", "."))
+                            < Double.parseDouble(aggV.replace(",", "."))
+                            ? newV : aggV
                 ).toStream().map((k, v) -> {
                     JsonObject newResult = new JsonObject();
                     newResult.addProperty("minTemp", v);
-                    return new KeyValue<>(k, newResult);
+                    return new KeyValue<>(k, newResult.toString());
                 }).to("results-requirement-9");
     }
 
@@ -356,7 +353,7 @@ public class WeatherStation {
                    JsonObject newResult = new JsonObject();
                    newResult.addProperty("station", k);
                    newResult.addProperty("averageTemp", v.split(",")[1]);
-                   return new KeyValue<>(k, newResult);
+                   return new KeyValue<>(k, newResult.toString());
                }).to("results-requirement-10");
     }
 
@@ -364,22 +361,17 @@ public class WeatherStation {
     private void avgTempStationsRedLastHour(KStream<String, String> standardWeatherStream, KStream<String, String> alerts){
         ValueJoiner<String, String, String> valueJoiner = (value1, value2) -> {
             Gson gson = new Gson();
-            JsonObject newValue1 = gson.fromJson(value1, JsonObject.class);
             JsonObject newValue2 = gson.fromJson(value2, JsonObject.class);
             JsonObject finalValue = new JsonObject();
             finalValue.add("station",
                     newValue2.get("station"));
-            finalValue.add("location",
-                    newValue2.get("location"));
             finalValue.add("temperature",
                     newValue2.get("temperature"));
-            finalValue.add("type",
-                    newValue1.get("type"));
             return finalValue.toString();
         };
         alerts.filter((k, v) -> {
                     JsonObject newValue = new Gson().fromJson(v, JsonObject.class);
-                    return !LocalDateTime.parse(newValue.get("date").getAsString())
+                    return LocalDateTime.parse(newValue.get("date").getAsString())
                             .isAfter(LocalDateTime.now().minusHours(2))
                             && newValue.get("type").getAsString().equals("red");
                 }).join(standardWeatherStream, valueJoiner,
@@ -391,7 +383,7 @@ public class WeatherStation {
                             newResult.get("temperature").getAsString());
                 })
                 .groupByKey()
-                .aggregate(() -> "0,0,0", // first element is the total, second is the average
+                .aggregate(() -> "0,0,0",
                         (k, v, aggregate) -> {
                             String[] aggregation = aggregate.split(",");
                             int count = Integer.parseInt(aggregation[2]) + 1;
@@ -404,8 +396,8 @@ public class WeatherStation {
                    JsonObject newResult = new JsonObject();
                    newResult.addProperty("station", k);
                    newResult.addProperty("averageTemp", v.split(",")[1]);
-                   return new KeyValue<>(k, newResult);
-               }).peek((k,v)-> System.out.println(v));
+                   return new KeyValue<>(k, newResult.toString());
+               }).to("results-requirement-11");
     }
 
 }
