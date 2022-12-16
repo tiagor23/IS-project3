@@ -55,13 +55,12 @@ public class WeatherStation {
 
     private void assignDbInfo(){
 
-        KStream<String, String> lines = builder.stream("dbInfo_weather_station",
+        KStream<String, String> dbInfoStream = builder.stream("dbInfo_weather_station",
                 Consumed.with(Serdes.String(), Serdes.String()));
-        // se me apetecer mudar, meter o id de cada station na location, para identificar a station de cada cena, e meter no topic
 
         // stream to consume the dbInfo
         // produce to standard weather
-        lines.map((key, result) -> {
+        dbInfoStream.map((key, result) -> {
             Gson gson = new Gson();
             JsonObject newResult = gson.fromJson(result, JsonObject.class);
             JsonObject value = new JsonObject();
@@ -77,7 +76,7 @@ public class WeatherStation {
 
         // stream to consume the dbInfo
         // produce to weather alerts
-        lines.map((key, result) -> {
+        dbInfoStream.map((key, result) -> {
             Gson gson = new Gson();
             JsonObject newResult = gson.fromJson(result, JsonObject.class);
             String[] types = {"green", "red"};
@@ -117,7 +116,6 @@ public class WeatherStation {
             return new KeyValue<>(newResult.get("location").getAsString(),
                     newResult.get("station").getAsString());
         }).groupByKey(Grouped.with(Serdes.String(), Serdes.String())).count().toStream().map((k, v) -> {
-            Gson gson = new Gson();
             JsonObject value = new JsonObject();
             value.addProperty("location", k);
             value.addProperty("count", v);
